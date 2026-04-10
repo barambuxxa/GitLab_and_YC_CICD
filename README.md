@@ -3,12 +3,12 @@
 Задача сделать олноценный pipeline, с помощью GitLab CICD.
 
 Необходимо создать:
-- Yandex Cloud с отельной папкой под наш проект.
+- Каталог Yandex Cloud с нашим проектом.
 - Yandex Cloud - Container Registry. Тут будут храниться собранные контейнеры с приложением.
 - Yandex Cloud - Serverless Containers. Здесь будут разворачиваться контейнеры для среды dev и prod.
 - Docker Image и Docker контейнер с нашим приложением. Http сервер, который возвразает состояние.
-- Развернуть GitLab сервер на VM
-- В созданном проекте на GitLab создать 2 ветки, dev и prod
+- Развернуть GitLab сервер на VM.
+- В созданном проекте на GitLab создать 2 ветки, dev и prod.
 - Написать CICD pipeline по следующим пунктам:
     - Stage 1: Проверка окружения для дальнейшей сборки docker контейнера.
     - Stage 2: Сборка докер контейнера и его push в Yandex cloud - Container Registry. Контейнер будет иметь тег ветки и номер commita.
