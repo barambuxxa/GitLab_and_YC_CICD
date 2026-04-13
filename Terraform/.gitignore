@@ -1,0 +1,6 @@
+terraform.tfvars        #Скрываем файл с конфиденциальными данными
+*.tfvars
+*.tfvars.json
+terraform.tfstate       #Скрываем файл с финальной развёрткой, там могут быть секреты и пароли
+terraform.tfstate.backup
+key.json
