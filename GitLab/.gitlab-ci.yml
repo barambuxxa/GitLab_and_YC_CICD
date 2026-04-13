@@ -1,0 +1,111 @@
+#-----------------------------------------------------
+#GitLab CI/CD Pipeline Docker to YC
+#
+#Created by Andrey Gurenich
+#------------------------------------------------------
+
+stages:
+  - stage_validate            #Проверка окружения для дальнейше работы
+  - stage_build_push
+  - stage_deploy_dev
+  - stage_deploy_prd
+  - stage_finish
+
+job_validate:
+    stage: stage_validate
+    script:
+        - echo "-- VALIDATE TOOLS --"
+        - whoami                                                #Под каким пользователем работаем
+        - yc --version                                          #Версия yandex cloud cli
+        - docker --version                                      #Версия докера
+        - echo "---CHECK AUTHENTICATION---"
+        - yc config set token $YC_OAUTH_TOKEN                   #OAuth который мы сформировали и добавили в Variables
+        - yc config set cloud-id $YC_CLOUD_ID                   #ID нашего облака, в variables
+        - yc config set folder-id $YC_FOLDER_ID                 #ID нашей папки в облаке, в variables
+        - echo "---VERIFY AUTHENTICATION---"
+        - yc resource-manager folder get $YC_FOLDER_ID
+        - echo $YC_SERVICE_ACCOUNT_ID          #Проверка реусурсов которые есть в нашем каталоге
+
+job_build_push:
+    stage: stage_build_push
+    before_script:
+        - echo "Starting up YC auth..."
+        - yc config set token $YC_OAUTH_TOKEN                   #OAuth который мы сформировали и добавили в Variables
+        - yc config set cloud-id $YC_CLOUD_ID                   #ID нашего облака, в variables
+        - yc config set folder-id $YC_FOLDER_ID                 #ID нашей папки в облаке, в variables
+
+        # Принудительно создаем пустой config.json
+        - mkdir -p ~/.docker
+        - echo '{}' > ~/.docker/config.json
+
+        - echo "Getting IAM token..."
+        - YC_IAM_TOKEN=$(yc iam create-token)                   #Создаём IAM токен для доступа к Container Registry
+        - echo "Authenticating to Container Registry..."
+        - echo $YC_IAM_TOKEN | docker login --username iam --password-stdin cr.yandex   #Логинемся в наш Registry
+        - echo "Checking Docker auth..."
+        - cat ~/.docker/config.json | grep cr.yandex || echo "Docker config check"      #Проверяем что подключились успешно  
+    script:
+        - echo "---BUILD and PUSH START---"
+        - docker build --platform linux/amd64 -t my-app:latest .                                #Создаём docker image
+        - docker tag my-app:latest cr.yandex/$YC_REGISTRY_ID/my-app:$CI_COMMIT_SHORT_SHA        #Ставим тег коммита для точной идентификации image
+        - docker tag my-app:latest cr.yandex/$YC_REGISTRY_ID/my-app:$CI_COMMIT_BRANCH-latest    #Ставим тег для версии ветки dev или main
+        - docker push cr.yandex/$YC_REGISTRY_ID/my-app:$CI_COMMIT_SHORT_SHA                     #Пушим в Containder Registry
+        - docker push cr.yandex/$YC_REGISTRY_ID/my-app:$CI_COMMIT_BRANCH-latest                 #Пушим в Containder Registry
+        - echo "---Build and PUSH COMPLETED---"
+
+job_deploy_dev:
+    stage: stage_deploy_dev
+    rules:
+        - if: $CI_COMMIT_BRANCH == "dev"                        #Включается условие, что если делается commit в dev, то продолжаем
+    before_script:
+        - yc config set token $YC_OAUTH_TOKEN                   #OAuth который мы сформировали и добавили в Variables
+        - yc config set cloud-id $YC_CLOUD_ID                   #ID нашего облака, в variables
+        - yc config set folder-id $YC_FOLDER_ID                 #ID нашей папки в облаке, в variables
+    script:
+        - echo "---Deploy to DEV Started---"
+        #Создаём Serverless контейнер из нужного docker контейнереа. С выбором нужного image. Какой аккаунт будет создавать, какие характеристики и с переменными.
+        - |
+          yc serverless container revision deploy \             
+            --container-name $YC_CONTAINER_NAME_DEV \
+            --image cr.yandex/$YC_REGISTRY_ID/my-app:$CI_COMMIT_BRANCH-latest \
+            --service-account-id $YC_SERVICE_ACCOUNT_ID \
+            --memory 512MB \
+            --cores 1 \
+            --execution-timeout 30s \
+            --environment ENVIRONMENT=dev \
+            --environment VERSION=$CI_COMMIT_SHORT_SHA
+        - echo "---Deploy to DEV Completed---"
+    environment:
+        name: development
+        url: https://$YC_CONTAINER_NAME_DEV.containers.yandexcloud.net/
+
+job_deploy_prd:
+    stage: stage_deploy_prd
+    rules:
+        - if: $CI_COMMIT_BRANCH == "main"
+    before_script:
+        - yc config set token $YC_OAUTH_TOKEN                   #OAuth который мы сформировали и добавили в Variables
+        - yc config set cloud-id $YC_CLOUD_ID                   #ID нашего облака, в variables
+        - yc config set folder-id $YC_FOLDER_ID                 #ID нашей папки в облаке, в variables
+    script:
+        - echo "---Deploy to PROD Started---"
+        #Создаём Serverless контейнер из нужного docker контейнереа. С выбором нужного image. Какой аккаунт будет создавать, какие характеристики и с переменными.
+        - |
+          yc serverless container revision deploy \
+            --container-name $YC_CONTAINER_NAME_PROD \
+            --image cr.yandex/$YC_REGISTRY_ID/my-app:$CI_COMMIT_BRANCH-latest \
+            --service-account-id $YC_SERVICE_ACCOUNT_ID \
+            --memory 512MB \
+            --cores 1 \
+            --execution-timeout 30s \
+            --environment ENVIRONMENT=dev \
+            --environment VERSION=$CI_COMMIT_SHORT_SHA
+        - echo "---Deploy to PROD Completed---"
+    environment:
+        name: development
+        url: https://$YC_CONTAINER_NAME_PROD.containers.yandexcloud.net/
+
+finish_job:
+    stage: stage_finish
+    script:
+        - echo "---GitLab CI/CD Completed Successfully---"
