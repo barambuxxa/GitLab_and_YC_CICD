@@ -28,5 +28,8 @@
 При успешном завершении, мы увидим в gitLab подключенный runner, который готов собирать pipeline.
 
 - У нас уже развёрнуты 2 Serverless Containers (dev и prod), 1 Container Registry. Между собой они привязаны. 
-- У 
- 
+- Имеется Dockerfile из которого будет собираться Dockerimage
+- requirements.txt c установленными зависимостями
+- Lambda код (lambda_function.py)
+- HTTP-обёртка нашего приложения (server.py)
+- Pipeline для Gitlab CICD (.gitlab-ci.yml)
