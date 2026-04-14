@@ -90,4 +90,6 @@ job_deploy_prd
 stage_finish
 - Тут мы просто выводим, что CICD подошёл к концу.
 
-
+Результату можно увидить в нашем публичном облаке на Yandex Cloud. В моём случаи это:
+- PROD https://bba6790hqai31iic76n6.containers.yandexcloud.net/
+- DEV https://bbabnrsdjpl0klmb67t6.containers.yandexcloud.net/
