@@ -68,6 +68,8 @@ YC_CONTAINER_NAME_DEV	Имя DEV контейнера Variable	Нет
 YC_CONTAINER_NAME_PROD	Имя PROD контейнера	Variable	Нет
 YC_SERVICE_ACCOUNT_ID	ID сервисного аккаунта Variable	Да
 
+Создадим вторую ветку в нашем проекте с названием dev и сделаем merge c main. Тут и самая суть. Если будет сделан коммит в ветку dev, тогда будет запущенен pipeline минуя stage_deploy_prd и мы увидим наш конейнер в среде dev.
+
 Наш pipeline будет разбит на следующие шаги:
 - stage_validate
 - stage_build_push
