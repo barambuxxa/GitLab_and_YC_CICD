@@ -26,3 +26,7 @@
 5.	Executor: Выбираем самый простой, shell. 
 
 При успешном завершении, мы увидим в gitLab подключенный runner, который готов собирать pipeline.
+
+- У нас уже развёрнуты 2 Serverless Containers (dev и prod), 1 Container Registry. Между собой они привязаны. 
+- У 
+ 
